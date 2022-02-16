@@ -6,7 +6,7 @@ def findCurve(prime, curveCofactor, twistCofactor, _A):
    F = GF(prime)
    A = _A
    while A < _A + 100000: 
-     print A
+     print(A)
      if (A-2.) % 4 != 0:
        A+=1.
        continue
@@ -21,11 +21,10 @@ def findCurve(prime, curveCofactor, twistCofactor, _A):
        continue
 
      twistOrder = 2*(prime+1)-groupOrder
-     if (twistOrder % twistCofactor != 0 or
-         not is_prime(twistOrder // twistCofactor)):
+     if (twistOrder % twistCofactor != 0 or not is_prime(twistOrder // twistCofactor)):
        A+=1
        continue    
-     return A, E
+     return E, A, 1, groupOrder, curveCofactor, groupOrder // curveCofactor
 
 def find1Mod4(prime, curveCofactor, twistCofactor, A):
    assert((prime % 4) == 1)
@@ -33,17 +32,17 @@ def find1Mod4(prime, curveCofactor, twistCofactor, A):
 
 def findGenPoint(prime, A, EC, N):
    F = GF(prime)
-   for uInt in range(1, 1e3):
+   for uInt in range(1, 1000):
       u = F(uInt)
       v2 = u^3 + A*u^2 + u
       if not v2.is_square():
          continue
-         v = v2.sqrt()
-        
-         point = EC(u, v)
-         pointOrder = point.order()
-         if pointOrder == N:
-            return point
+         
+      v = v2.sqrt()
+      point = EC(u, v)
+      pointOrder = point.order()
+      if pointOrder == N:
+         return point
 
 def mont_to_ted(u, v , r):
     x = Mod(u / v, r) 
@@ -63,25 +62,22 @@ Fr = GF(prime)
 h = 8 # cofactor
 
 A = int(sys.argv[1])
-A, EC = find1Mod4(prime, h, 4, A)
+EC, A, B, n, h , l = find1Mod4(prime, h, 4, A)
 
 # A = 170214 another candidate
-B = 1
-a = A + 2 / B
-d = A - 2 / B
+a = (A + 2) / B
+d = (A - 2) / B
 
-print "a " , a , "d " , d , sqrt(d)
+print("a " , a , "d " , d , sqrt(d))
 # check we have a safe twist
 assert(not d.is_square())
 assert(a*d*(a-d)!=0)
 
-s = factor(EC.order())
-print ("l : " , s)
-N = h * s # order of the curve
+print ("l : " , l)
 print (factor(EC.quadratic_twist().order()))
 
 # get generator point
-u_gen, v_gen, w_gen = findGenPoint(prime, A, EC, N)
+u_gen, v_gen, w_gen = findGenPoint(prime, A, EC, n)
 # find that generator point on the edwards curve
 gen_x, gen_y = mont_to_ted(u_gen, v_gen, prime)
 # make sure the generator point is on the twisted edwards curve
